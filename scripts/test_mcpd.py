@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 
@@ -13,6 +14,8 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--rom", required=True)
     parser.add_argument("--frames", type=int, default=60)
+    parser.add_argument("--cdl-short-frames", type=int, default=60)
+    parser.add_argument("--cdl-long-frames", type=int, default=900)
     args = parser.parse_args()
 
     proc = subprocess.Popen(
@@ -54,6 +57,11 @@ def main() -> int:
         loaded = tool("session.load_rom", {"rom": args.rom, "timeout": 120})
         session = loaded["session"]
         print(f"loaded {loaded['romInfo']['name']} {loaded['romInfo']['fileSha1Hash']}")
+        info = tool("session.info", {"session": session})
+        assert info["rom"] == os.path.realpath(os.path.expanduser(args.rom)), info
+        if args.rom.lower().endswith(".zip"):
+            assert info["loadedRom"] != info["rom"], info
+            assert info["loadedRom"].endswith(".sfc"), info
 
         breakpoint = tool(
             "breakpoint.create",
@@ -97,6 +105,20 @@ def main() -> int:
 
         tool("session.shutdown", {"session": session})
         session = None
+
+        short_cdl = measure_cdl(tool, args.rom, args.cdl_short_frames)
+        long_cdl = measure_cdl(tool, args.rom, args.cdl_long_frames)
+        assert long_cdl["codeBytes"] >= short_cdl["codeBytes"] * 4, (short_cdl, long_cdl)
+        assert long_cdl["dataBytes"] >= short_cdl["dataBytes"] * 4, (short_cdl, long_cdl)
+        assert long_cdl["summaryRanges"] > short_cdl["summaryRanges"], (short_cdl, long_cdl)
+        print(
+            f"cdl_compare {args.cdl_short_frames}f code={short_cdl['codeBytes']} data={short_cdl['dataBytes']} "
+            f"ranges={short_cdl['summaryRanges']}"
+        )
+        print(
+            f"cdl_compare {args.cdl_long_frames}f code={long_cdl['codeBytes']} data={long_cdl['dataBytes']} "
+            f"ranges={long_cdl['summaryRanges']}"
+        )
     finally:
         if session:
             try:
@@ -107,6 +129,29 @@ def main() -> int:
             proc.stdin.close()
         proc.wait(timeout=10)
     return 0
+
+
+def measure_cdl(tool: Any, rom: str, frames: int) -> dict[str, Any]:
+    export_path = tempfile.NamedTemporaryFile(prefix=f"mesen-cdl-{frames}-", suffix=".json", delete=False)
+    export_path.close()
+    session = None
+    try:
+        loaded = tool("session.load_rom", {"rom": rom, "timeout": 180})
+        session = loaded["session"]
+        tool("cdl.start", {"session": session})
+        tool("run.step_frames", {"session": session, "frames": frames, "reset": True})
+        cdl = tool("cdl.export", {"session": session, "memoryType": "snesPrgRom", "path": export_path.name})
+        assert cdl["coveredBytes"] == cdl["memorySize"], cdl
+        assert cdl["codeBytes"] > 0, cdl
+        assert cdl["dataBytes"] > 0, cdl
+        return cdl
+    finally:
+        if session:
+            tool("session.shutdown", {"session": session})
+        try:
+            os.unlink(export_path.name)
+        except FileNotFoundError:
+            pass
 
 
 if __name__ == "__main__":

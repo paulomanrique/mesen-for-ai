@@ -153,7 +153,13 @@ class McpDaemon:
 
     def session_info(self, args: Json) -> Any:
         session = self.sessions.get(args["session"])
-        return {"session": session.handle, "rom": str(session.rom), "root": str(session.root), "romInfo": session.client.request("romInfo")}
+        return {
+            "session": session.handle,
+            "rom": str(session.rom),
+            "loadedRom": str(session.loaded_rom),
+            "root": str(session.root),
+            "romInfo": session.client.request("romInfo"),
+        }
 
     def session_reset(self, args: Json) -> Any:
         return self.sessions.get(args["session"]).client.request("reset")

@@ -60,7 +60,13 @@ Implemented tools:
 For deterministic evidence runs, call `run.step_frames` with `"reset": true`.
 That makes reset plus N frames one bridge operation, avoiding variable frames
 between separate MCP calls. `cdl.export` returns `coveredBytes` and
-`memorySize`; they must match for a complete per-byte ROM map.
+`memorySize`; they must match for a complete per-byte ROM map. That is map
+completeness, not execution coverage. The evidence that CDL is live is growth
+in `codeBytes`, `dataBytes`, and range counts as the game runs longer.
+
+`session.load_rom` accepts ZIP archives. For ZIPs, the daemon extracts the
+single supported ROM member into the session's temporary directory, launches
+Mesen against that extracted file, and removes it on `session.shutdown`.
 
 Supported CDL targets are the Mesen CDL-backed ROM regions: SNES PRG ROM, NES
 PRG/CHR ROM, PC Engine PRG ROM, and GBA PRG ROM. Master System, Game Boy, and
