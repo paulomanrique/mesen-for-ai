@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mesen Emulator"
+  short_description: "Run SNES/NES/PCE/GBA in Mesen over MCP"
+  default_prompt: "Use $mesen-emulator to load a SNES ROM, step frames, and read registers."

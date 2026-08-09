@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mesen Code/Data"
+  short_description: "Export Mesen CDL code/data coverage"
+  default_prompt: "Use $mesen-codedata to export a SNES Code/Data Logger map."

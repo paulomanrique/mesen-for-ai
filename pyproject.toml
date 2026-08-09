@@ -8,10 +8,10 @@ version = "0.1.0"
 description = "MCP server for driving Mesen headless"
 requires-python = ">=3.11"
 dependencies = []
+license = "GPL-3.0-only"
 
 [project.scripts]
 mesen-mcpd = "mesen_mcp.daemon:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

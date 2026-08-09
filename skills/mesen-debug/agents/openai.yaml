@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mesen Debug"
+  short_description: "Watch, break, and trace in Mesen MCP"
+  default_prompt: "Use $mesen-debug to find which SNES routine wrote to this address."
