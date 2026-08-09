@@ -9,6 +9,11 @@ over MCP JSON-RPC on stdio.
 
 If you are an LLM, read this first: [AGENTS.md](AGENTS.md).
 
+Use your own legally obtained ROMs. No ROMs, BIOS files, or commercial
+reference material belong in this repository. Some examples mention Final Fight
+2 by name because it is the motivating SNES conversion case; the repository
+does not include that ROM or any path to a private ROM library.
+
 ## Supported Systems
 
 Use this project for Mesen systems where the required debugger surface is

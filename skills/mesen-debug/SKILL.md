@@ -81,7 +81,7 @@ with Mesen() as mesen:
 Observed output from the same run shape:
 
 ```text
-breakpoint breakpoint-2 hit_pc $00:8000 listed_hit True
+breakpoint breakpoint-1 hit_pc $00:8000 listed_hit True
 ```
 
 Mesen-for-ai deliberately does not leave the session frozen after a breakpoint hit. It

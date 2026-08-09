@@ -53,7 +53,7 @@ with Mesen() as mesen:
 Executed output with a private SNES test ROM:
 
 ```text
-loaded Example Game
+loaded Final Fight 2 (USA).sfc
 step {'startFrame': 0, 'status': {'cpuCycleCount': 520015, 'frame': 10, 'masterClock': 3523196}, 'targetFrame': 10}
 pc 0xa4c1 a 65456
 ram0 [0, 0, 0, 0]
