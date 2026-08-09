@@ -10,7 +10,7 @@ from typing import Any
 class BridgeClient:
     host: str
     port: int
-    timeout: float = 5.0
+    timeout: float = 60.0
     _next_id: int = 1
 
     def request(self, command: str, args: dict[str, Any] | None = None) -> Any:
@@ -27,4 +27,3 @@ class BridgeClient:
             error = response["error"]
             raise RuntimeError(error.get("message", str(error)))
         return response.get("result")
-

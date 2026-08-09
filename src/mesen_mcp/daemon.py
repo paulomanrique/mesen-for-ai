@@ -38,7 +38,10 @@ class McpDaemon:
             "session.info": ({"session": Field(str, required=True)}, self.session_info),
             "session.reset": ({"session": Field(str, required=True)}, self.session_reset),
             "session.shutdown": ({"session": Field(str, required=True)}, self.session_shutdown),
-            "run.step_frames": ({"session": Field(str, required=True), "frames": Field(int, required=True)}, self.run_step_frames),
+            "run.step_frames": (
+                {"session": Field(str, required=True), "frames": Field(int, required=True), "reset": Field(bool, default=False)},
+                self.run_step_frames,
+            ),
             "run.status": ({"session": Field(str, required=True)}, self.run_status),
             "cpu.registers": (
                 {"session": Field(str, required=True), "cpuType": Field(str), "state": Field(dict)},
@@ -62,6 +65,53 @@ class McpDaemon:
                 },
                 self.cpu_write_memory,
             ),
+            "watch.create": (
+                {
+                    "session": Field(str, required=True),
+                    "memoryType": Field(str, required=True),
+                    "address": Field(int, required=True),
+                    "length": Field(int, default=1),
+                    "access": Field(str, default="write"),
+                    "cpuType": Field(str, default="snes"),
+                },
+                self.watch_create,
+            ),
+            "watch.list": ({"session": Field(str, required=True)}, self.watch_list),
+            "watch.delete": ({"session": Field(str, required=True), "handle": Field(str, required=True)}, self.watch_delete),
+            "breakpoint.create": (
+                {
+                    "session": Field(str, required=True),
+                    "memoryType": Field(str, required=True),
+                    "address": Field(int, required=True),
+                    "length": Field(int, default=1),
+                    "access": Field(str, default="exec"),
+                    "cpuType": Field(str, default="snes"),
+                },
+                self.breakpoint_create,
+            ),
+            "breakpoint.list": ({"session": Field(str, required=True)}, self.breakpoint_list),
+            "breakpoint.delete": (
+                {"session": Field(str, required=True), "handle": Field(str, required=True)},
+                self.breakpoint_delete,
+            ),
+            "cdl.start": ({"session": Field(str, required=True)}, self.cdl_start),
+            "cdl.stop": ({"session": Field(str, required=True)}, self.cdl_stop),
+            "cdl.get": (
+                {
+                    "session": Field(str, required=True),
+                    "memoryType": Field(str, default="snesPrgRom"),
+                    "offset": Field(int, default=0),
+                    "length": Field(int, default=256),
+                },
+                self.cdl_get,
+            ),
+            "cdl.export": (
+                {"session": Field(str, required=True), "memoryType": Field(str, default="snesPrgRom"), "path": Field(str, required=True)},
+                self.cdl_export,
+            ),
+            "trace.start": ({"session": Field(str, required=True), "cpuType": Field(str, default="snes")}, self.trace_start),
+            "trace.stop": ({"session": Field(str, required=True), "handle": Field(str, required=True)}, self.trace_stop),
+            "trace.list": ({"session": Field(str, required=True)}, self.trace_list),
         }
 
     def tool_specs(self) -> list[Json]:
@@ -112,6 +162,8 @@ class McpDaemon:
         if args["frames"] <= 0:
             raise ValidationError("run.step_frames: argument 'frames' must be > 0")
         session = self.sessions.get(args["session"])
+        if args.get("reset"):
+            return session.client.request("resetRunFrames", {"frames": args["frames"]})
         start = session.client.request("status")["frame"]
         target = start + args["frames"]
         deadline = time.monotonic() + max(5.0, args["frames"] / 10.0)
@@ -147,6 +199,57 @@ class McpDaemon:
             "writeMemory",
             {"memoryType": args["memoryType"], "address": args["address"], "bytes": args["bytes"]},
         )
+
+    def watch_create(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request(
+            "createWatch",
+            _select(args, "memoryType", "address", "length", "access", "cpuType"),
+        )
+
+    def watch_list(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("listWatches")
+
+    def watch_delete(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("deleteWatch", {"handle": args["handle"]})
+
+    def breakpoint_create(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request(
+            "createBreakpoint",
+            _select(args, "memoryType", "address", "length", "access", "cpuType"),
+        )
+
+    def breakpoint_list(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("listBreakpoints")
+
+    def breakpoint_delete(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("deleteBreakpoint", {"handle": args["handle"]})
+
+    def cdl_start(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("startCdl")
+
+    def cdl_stop(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("stopCdl")
+
+    def cdl_get(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request(
+            "getCdl",
+            {"memoryType": args["memoryType"], "offset": args["offset"], "length": args["length"]},
+        )
+
+    def cdl_export(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request(
+            "exportCdl",
+            {"memoryType": args["memoryType"], "path": args["path"]},
+        )
+
+    def trace_start(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("startTrace", {"cpuType": args["cpuType"]})
+
+    def trace_stop(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("stopTrace", {"handle": args["handle"]})
+
+    def trace_list(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("listTraces")
 
     def handle(self, request: Json) -> Json | None:
         request_id = request.get("id")
@@ -194,6 +297,9 @@ def main() -> int:
     return 0
 
 
+def _select(args: Json, *keys: str) -> Json:
+    return {key: args[key] for key in keys if key in args}
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
-
