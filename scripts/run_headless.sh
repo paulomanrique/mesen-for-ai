@@ -39,7 +39,8 @@ cat > "$MESEN_CONFIG_HOME/settings.json" <<'JSON'
 {
   "Debug": {
     "ScriptWindow": {
-      "AllowIoOsAccess": true
+      "AllowIoOsAccess": true,
+      "AllowNetworkAccess": true
     }
   },
   "Snes": {
