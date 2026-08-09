@@ -314,6 +314,7 @@ local function read_memory(args)
 end
 
 local commands = {}
+local frame_count = 0
 
 function commands.ping()
   return { ok = true, message = "pong" }
@@ -327,6 +328,17 @@ function commands.readMemory(args)
   return read_memory(args or {})
 end
 
+function commands.writeMemory(args)
+  args = args or {}
+  local address = assert(args.address, "address is required")
+  local bytes = assert(args.bytes, "bytes is required")
+  local mt = mem_type(args.memoryType)
+  for i, value in ipairs(bytes) do
+    emu.write(address + i - 1, value, mt)
+  end
+  return { address = address, length = #bytes, memoryType = args.memoryType }
+end
+
 function commands.cpuState(args)
   args = args or {}
   local ct = cpu_type(args.cpuType)
@@ -334,6 +346,33 @@ function commands.cpuState(args)
     return emu.getCpuState()
   end
   return emu.getCpuState(ct)
+end
+
+function commands.setCpuState(args)
+  args = args or {}
+  local state = assert(args.state, "state is required")
+  local ct = cpu_type(args.cpuType)
+  if ct == nil then
+    emu.setCpuState(state)
+  else
+    emu.setCpuState(state, ct)
+  end
+  return { ok = true }
+end
+
+function commands.reset()
+  emu.reset()
+  frame_count = 0
+  return { ok = true }
+end
+
+function commands.status()
+  local ok_cycles, cycles = pcall(emu.getCpuCycleCount)
+  return {
+    frame = frame_count,
+    masterClock = emu.getMasterClock(),
+    cpuCycleCount = ok_cycles and cycles or nil,
+  }
 end
 
 function commands.shutdown()
@@ -433,5 +472,6 @@ local function pump_socket()
 end
 
 emu.addEventCallback(function()
+  frame_count = frame_count + 1
   pump_socket()
 end, emu.eventType.endFrame)

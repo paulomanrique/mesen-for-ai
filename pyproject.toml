@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mesen-for-ai"
+version = "0.1.0"
+description = "MCP server for driving Mesen headless"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+mesen-mcpd = "mesen_mcp.daemon:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
