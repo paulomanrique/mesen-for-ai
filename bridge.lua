@@ -345,6 +345,7 @@ local cdl_active = false
 local max_event_buffer = tonumber(os.getenv("MESEN_BRIDGE_MAX_EVENTS") or "2048")
 local pending_responses = {}
 local pending_marker = {}
+local send_response
 
 local function new_handle(prefix)
   local handle = prefix .. "-" .. tostring(next_handle)
@@ -361,6 +362,16 @@ local function callback_type(name_or_id)
     error("unknown callback type: " .. tostring(name_or_id))
   end
   return value
+end
+
+local function format_pc(cpu, state)
+  if state == nil or state.pc == nil then
+    return nil
+  end
+  if cpu == emu.cpuType.snes and state.k ~= nil then
+    return string.format("$%02X:%04X", state.k & 0xFF, state.pc & 0xFFFF)
+  end
+  return string.format("$%X", state.pc)
 end
 
 function commands.ping()
@@ -422,21 +433,28 @@ function commands.status()
   }
 end
 
-function commands.resetRunFrames(args, request_context)
+function commands.runFrames(args, request_context)
   args = args or {}
   local frames = assert(args.frames, "frames is required")
-  emu.reset()
-  frame_count = 0
+  local start_frame = args.reset and 0 or frame_count
   pending_responses[#pending_responses + 1] = {
     client = request_context.client,
     id = request_context.id,
-    startFrame = 0,
-    targetFrame = frames,
+    startFrame = start_frame,
+    targetFrame = start_frame + frames,
   }
+  if args.reset then
+    frame_count = 0
+    emu.reset()
+  end
   return pending_marker
 end
 
 local function event_record(handle, address, value, cpu)
+  local ok_state, state = pcall(emu.getCpuState, cpu)
+  if not ok_state then
+    state = nil
+  end
   return {
     handle = handle,
     address = address,
@@ -445,6 +463,9 @@ local function event_record(handle, address, value, cpu)
     frame = frame_count,
     masterClock = emu.getMasterClock(),
     cpuCycleCount = emu.getCpuCycleCount(cpu),
+    pc = state and state.pc or nil,
+    pcBank = state and state.k or nil,
+    pcDisplay = format_pc(cpu, state),
   }
 end
 
@@ -453,6 +474,28 @@ local function append_event(buffer, event)
   if #buffer > max_event_buffer then
     table.remove(buffer, 1)
   end
+end
+
+local function complete_pending_with_breakpoint(hit)
+  if #pending_responses == 0 then
+    return
+  end
+  for _, pending in ipairs(pending_responses) do
+    send_response(pending.client, {
+      id = pending.id,
+      result = {
+        startFrame = pending.startFrame,
+        targetFrame = pending.targetFrame,
+        status = {
+          frame = frame_count,
+          masterClock = emu.getMasterClock(),
+          cpuCycleCount = emu.getCpuCycleCount(),
+        },
+        breakpoint_hit = hit,
+      },
+    })
+  end
+  pending_responses = {}
 end
 
 function commands.createWatch(args)
@@ -510,8 +553,14 @@ function commands.createBreakpoint(args)
   local handle = new_handle("breakpoint")
   local ref
   ref = emu.addMemoryCallback(function(addr, value)
-    append_event(breakpoint_events, event_record(handle, addr, value, ct))
-    emu.breakExecution()
+    local hit = event_record(handle, addr, value, ct)
+    hit.breakpoint = handle
+    hit.memoryType = args.memoryType
+    hit.access = args.access or "exec"
+    breakpoints[handle].hit = true
+    breakpoints[handle].lastHit = hit
+    append_event(breakpoint_events, hit)
+    complete_pending_with_breakpoint(hit)
   end, cb, address, address + length - 1, ct, mt)
   breakpoints[handle] = {
     handle = handle,
@@ -737,7 +786,7 @@ end
 
 local clients = {}
 
-local function send_response(client, response)
+function send_response(client, response)
   client:send(json.encode(response) .. "\n")
 end
 
@@ -782,6 +831,7 @@ local function process_pending()
             masterClock = emu.getMasterClock(),
             cpuCycleCount = emu.getCpuCycleCount(),
           },
+          breakpoint_hit = nil,
         },
       })
     else

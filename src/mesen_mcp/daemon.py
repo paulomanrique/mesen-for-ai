@@ -30,6 +30,12 @@ def _json_type(field: Field) -> dict[str, Any]:
 class McpDaemon:
     def __init__(self) -> None:
         self.sessions = SessionManager()
+        self.tool_descriptions = {
+            "cdl.start": "CDL collection is continuous in Mesen Lua and cannot be turned on or off; this marks the session's intended coverage window.",
+            "cdl.stop": "CDL collection is continuous in Mesen Lua and cannot be turned on or off; this marks the coverage window as no longer active.",
+            "cdl.get": "Read decoded Code/Data Logger bytes from a supported ROM region.",
+            "cdl.export": "Export decoded Code/Data Logger bytes and contiguous range summaries for a supported ROM region.",
+        }
         self.tools: dict[str, tuple[Schema, Callable[[Json], Any]]] = {
             "session.load_rom": (
                 {"rom": Field(str, required=True), "mesen_bin": Field(str), "timeout": Field(int, default=3600)},
@@ -122,7 +128,7 @@ class McpDaemon:
             specs.append(
                 {
                     "name": name,
-                    "description": name,
+                    "description": self.tool_descriptions.get(name, name),
                     "inputSchema": {
                         "type": "object",
                         "properties": properties,
@@ -162,18 +168,7 @@ class McpDaemon:
         if args["frames"] <= 0:
             raise ValidationError("run.step_frames: argument 'frames' must be > 0")
         session = self.sessions.get(args["session"])
-        if args.get("reset"):
-            return session.client.request("resetRunFrames", {"frames": args["frames"]})
-        start = session.client.request("status")["frame"]
-        target = start + args["frames"]
-        deadline = time.monotonic() + max(5.0, args["frames"] / 10.0)
-        status = {"frame": start}
-        while time.monotonic() < deadline:
-            status = session.client.request("status")
-            if status["frame"] >= target:
-                return {"startFrame": start, "targetFrame": target, "status": status}
-            time.sleep(0.01)
-        raise TimeoutError(f"timed out waiting for frame {target}; last frame={status.get('frame')}")
+        return session.client.request("runFrames", {"frames": args["frames"], "reset": bool(args.get("reset"))})
 
     def cpu_registers(self, args: Json) -> Any:
         session = self.sessions.get(args["session"])
