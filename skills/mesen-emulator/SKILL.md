@@ -103,7 +103,9 @@ plus N frames one bridge operation so no variable frames run between separate ca
 Common memory types:
 
 - SNES: `snesMemory`, `snesWorkRam`, `snesPrgRom`
-- NES: `nesMemory`, `nesInternalRam`, `nesPrgRom`, `nesChrRom`
+- NES: `nesMemory`, `nesPpuMemory`, `nesInternalRam`, `nesPrgRom`,
+  `nesChrRom`, `nesNametableRam`, `nesPaletteRam`, `nesSpriteRam`,
+  `nesSecondarySpriteRam`
 - PC Engine: `pceMemory`, `pceWorkRam`, `pcePrgRom`
 - GBA: `gbaMemory`, `gbaIntWorkRam`, `gbaExtWorkRam`, `gbaPrgRom`
 

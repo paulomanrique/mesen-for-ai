@@ -84,9 +84,9 @@ Observed output from the same run shape:
 breakpoint breakpoint-1 hit_pc $00:8000 listed_hit True
 ```
 
-Mesen-for-ai deliberately does not leave the session frozen after a breakpoint hit. It
-records `lastHit` and returns early from `run.step_frames`, then the session keeps
-accepting MCP commands.
+Mesen-for-ai holds the session at the breakpoint boundary while returning early from
+`run.step_frames`. CPU registers and memory remain stable and available to inspection
+RPCs until the next explicit `run.step_frames` request resumes execution.
 
 ## Trace windows
 
