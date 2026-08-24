@@ -97,7 +97,18 @@ def main() -> int:
                 "cpuType": "snes",
             },
         )
-        tool("run.step_frames", {"session": session, "frames": args.frames, "reset": True})
+        stepped = tool("run.step_frames", {"session": session, "frames": args.frames, "reset": True})
+        stable_cpu = tool("cpu.registers", {"session": session, "cpuType": "snes"})
+        stable_ram_a = tool(
+            "cpu.read_memory",
+            {"session": session, "memoryType": "snesWorkRam", "address": 0, "length": 256},
+        )
+        stable_ram_b = tool(
+            "cpu.read_memory",
+            {"session": session, "memoryType": "snesWorkRam", "address": 0, "length": 256},
+        )
+        assert stable_cpu["cycleCount"] == stepped["status"]["cpuCycleCount"], (stable_cpu, stepped)
+        assert stable_ram_a == stable_ram_b, "memory changed between requests at the completed frame boundary"
         events = tool("watch.list", {"session": session})["events"]
         assert events, "expected watch events"
         assert events[0].get("pcDisplay"), events[0]

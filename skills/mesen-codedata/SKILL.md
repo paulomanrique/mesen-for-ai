@@ -56,6 +56,11 @@ before the window you want to measure.
 Do not promise CDL for Master System, Game Boy, or WonderSwan. Mesen does not register
 those CDL loggers.
 
+NES CHR is the platform-specific exception to the generic flag names: bit `0x01`
+means `NesChrDrawn` in Mesen's source, not CPU code. CHR records expose `drawn`,
+summaries classify those ranges as `drawn`, and exports count `drawnBytes` while
+keeping `codeBytes` and `dataBytes` at zero.
+
 ## Export workflow
 
 Executed example:

@@ -169,6 +169,9 @@ CDL is exposed for:
 
 Do not promise CDL for Master System, Game Boy, or WonderSwan.
 
+NES CHR bit `0x01` means `NesChrDrawn`, not CPU code. The bridge reports it as
+`drawn` / `drawnBytes`; never describe NES CHR `0x01` coverage as executed code.
+
 ## Common Errors
 
 - Wrong tool argument names are rejected. Use the schema returned by

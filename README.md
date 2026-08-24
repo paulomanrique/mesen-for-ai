@@ -112,6 +112,12 @@ The evidence that CDL is live is growth in `codeBytes`, `dataBytes`, and
 `summaryRanges` when a deterministic run is driven for longer or through more
 gameplay.
 
+NES CHR is the platform-specific exception to the generic flag names. Mesen's
+source defines bit `0x01` as `NesChrDrawn` for CHR ROM, not CPU `Code`.
+Inline/exported CHR records therefore expose `drawn`, summaries classify those
+ranges as `drawn`, and export counts report `drawnBytes`; `codeBytes` and
+`dataBytes` remain zero for CHR.
+
 ## Skills
 
 The repo ships Codex/Codex-compatible skills in [skills/](skills/):

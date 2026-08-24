@@ -343,6 +343,8 @@ local breakpoint_events = {}
 local traces = {}
 local cdl_active = false
 local max_event_buffer = tonumber(os.getenv("MESEN_BRIDGE_MAX_EVENTS") or "2048")
+local hold_at_boundary = false
+local pump_socket
 local pending_responses = {}
 local pending_marker = {}
 local send_response
@@ -447,6 +449,7 @@ function commands.runFrames(args, request_context)
     frame_count = 0
     emu.reset()
   end
+  hold_at_boundary = false
   return pending_marker
 end
 
@@ -496,6 +499,10 @@ local function complete_pending_with_breakpoint(hit)
     })
   end
   pending_responses = {}
+  hold_at_boundary = true
+  while hold_at_boundary do
+    pump_socket(0.05)
+  end
 end
 
 function commands.createWatch(args)
@@ -613,7 +620,13 @@ local function default_cdl_memory_type()
   return alias
 end
 
-local function decode_cdl_flags(value)
+local function decode_cdl_flags(value, memory_name)
+  if memory_name == "nesChrRom" then
+    return {
+      raw = value,
+      drawn = (value & 0x01) ~= 0,
+    }
+  end
   return {
     raw = value,
     code = (value & 0x01) ~= 0,
@@ -623,7 +636,10 @@ local function decode_cdl_flags(value)
   }
 end
 
-local function cdl_class(value)
+local function cdl_class(value, memory_name)
+  if memory_name == "nesChrRom" then
+    return (value & 0x01) ~= 0 and "drawn" or "unknown"
+  end
   local code = (value & 0x01) ~= 0
   local data = (value & 0x02) ~= 0
   if code and data then
@@ -655,7 +671,7 @@ function commands.getCdl(args)
   local data = emu.getCdlData(mt)
   local bytes = {}
   for i = offset + 1, math.min(offset + length, #data) do
-    bytes[#bytes + 1] = decode_cdl_flags(data[i])
+    bytes[#bytes + 1] = decode_cdl_flags(data[i], memory_name)
   end
   return {
     active = cdl_active,
@@ -677,10 +693,10 @@ local function write_cdl_export(path, memory_name, data, memory_size)
     if i > 1 then
       file:write(",")
     end
-    file:write(json.encode(decode_cdl_flags(value)))
-    local class = cdl_class(value)
-    local jump = (value & 0x04) ~= 0
-    local sub = (value & 0x08) ~= 0
+    file:write(json.encode(decode_cdl_flags(value, memory_name)))
+    local class = cdl_class(value, memory_name)
+    local jump = memory_name ~= "nesChrRom" and (value & 0x04) ~= 0
+    local sub = memory_name ~= "nesChrRom" and (value & 0x08) ~= 0
     if current and current.classification == class and current.jumpTarget == jump and current.subEntryPoint == sub then
       current["end"] = i - 1
     else
@@ -704,11 +720,16 @@ function commands.exportCdl(args)
   local covered = 0
   local code = 0
   local data_count = 0
+  local drawn = 0
   local sample = {}
   for i = 1, size do
     local value = data[i] or 0
-    if (value & 0x01) ~= 0 then code = code + 1 end
-    if (value & 0x02) ~= 0 then data_count = data_count + 1 end
+    if memory_name == "nesChrRom" then
+      if (value & 0x01) ~= 0 then drawn = drawn + 1 end
+    else
+      if (value & 0x01) ~= 0 then code = code + 1 end
+      if (value & 0x02) ~= 0 then data_count = data_count + 1 end
+    end
   end
   for _, summary in ipairs(summaries) do
     covered = covered + (summary["end"] - summary.start + 1)
@@ -724,6 +745,7 @@ function commands.exportCdl(args)
     coveredBytes = covered,
     codeBytes = code,
     dataBytes = data_count,
+    drawnBytes = drawn,
     sampleRanges = sample,
   }
 end
@@ -768,6 +790,7 @@ function commands.listTraces()
 end
 
 function commands.shutdown()
+  hold_at_boundary = false
   emu.stop(0)
   return { ok = true }
 end
@@ -816,11 +839,13 @@ end
 
 local function process_pending()
   if #pending_responses == 0 then
-    return
+    return false
   end
   local remaining = {}
+  local completed = false
   for _, pending in ipairs(pending_responses) do
     if frame_count >= pending.targetFrame then
+      completed = true
       send_response(pending.client, {
         id = pending.id,
         result = {
@@ -839,9 +864,11 @@ local function process_pending()
     end
   end
   pending_responses = remaining
+  return completed
 end
 
-local function pump_socket()
+pump_socket = function(timeout)
+  timeout = timeout or 0
   while true do
     local client = server:accept()
     if not client then
@@ -860,7 +887,7 @@ local function pump_socket()
     return
   end
 
-  local ready = socket.select(readable, nil, 0)
+  local ready = socket.select(readable, nil, timeout)
   for _, client in ipairs(ready) do
     while true do
       local chunk, err, partial = client:receive(1024)
@@ -894,6 +921,12 @@ end
 
 emu.addEventCallback(function()
   frame_count = frame_count + 1
-  process_pending()
+  local completed = process_pending()
   pump_socket()
+  if completed then
+    hold_at_boundary = true
+    while hold_at_boundary do
+      pump_socket(0.05)
+    end
+  end
 end, emu.eventType.endFrame)
