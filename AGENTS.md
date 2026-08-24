@@ -117,7 +117,9 @@ Mesen for the current system.
 ## Determinism Rules
 
 Use `run.step_frames(..., reset=true)` for evidence runs. It combines reset and
-frame stepping into one bridge operation.
+frame stepping into one bridge operation. A newly loaded ROM is held at its
+first frame boundary until an explicit run request, so instrumentation setup
+does not add a hidden pre-reset interval.
 
 The headless runner writes settings that make RAM deterministic:
 

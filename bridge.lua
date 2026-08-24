@@ -343,7 +343,9 @@ local breakpoint_events = {}
 local traces = {}
 local cdl_active = false
 local max_event_buffer = tonumber(os.getenv("MESEN_BRIDGE_MAX_EVENTS") or "2048")
-local hold_at_boundary = false
+-- A newly loaded ROM must not run freely between setup RPCs. Hold the first
+-- completed frame until an explicit runFrames request releases execution.
+local hold_at_boundary = true
 local pump_socket
 local pending_responses = {}
 local pending_marker = {}
@@ -925,8 +927,8 @@ emu.addEventCallback(function()
   pump_socket()
   if completed then
     hold_at_boundary = true
-    while hold_at_boundary do
-      pump_socket(0.05)
-    end
+  end
+  while hold_at_boundary do
+    pump_socket(0.05)
   end
 end, emu.eventType.endFrame)

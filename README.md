@@ -96,7 +96,9 @@ directory, launches Mesen against that extracted file, and removes it on
 
 For deterministic evidence runs, call `run.step_frames` with `reset=true`. That
 makes reset plus N frames one bridge operation and avoids variable frames
-between separate MCP calls.
+between separate MCP calls. A newly loaded ROM is held at its first completed
+frame until that explicit run request, so watches and CDL can be armed without
+recording an uncontrolled pre-reset interval.
 
 ## Code/Data Logger Semantics
 
