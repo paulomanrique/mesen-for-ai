@@ -117,8 +117,8 @@ Mesen for the current system.
 ## Determinism Rules
 
 Use `run.step_frames(..., reset=true)` for evidence runs. It combines reset and
-frame stepping into one bridge operation. A newly loaded ROM is held at its
-first frame boundary until an explicit run request, so instrumentation setup
+frame stepping into one bridge operation. A newly loaded ROM is held before its
+first frame starts until an explicit run request, so instrumentation setup
 does not add a hidden pre-reset interval.
 
 The headless runner writes settings that make RAM deterministic:
@@ -140,6 +140,13 @@ registers, memory, watches, or traces after the step returns.
 
 Breakpoint and watch events include PC fields such as `pc`, `pcBank` when
 available, and `pcDisplay`.
+
+## Input and video
+
+`input.set` stores a controller latch that the bridge applies only from Mesen's
+`inputPolled` callback. Set or clear named buttons while held between frame
+runs. `video.export_frame` writes the currently held rendered frame as binary
+P6 RGB for deterministic hashing and pixel comparison.
 
 ## Watches
 

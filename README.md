@@ -83,6 +83,8 @@ Implemented tools:
 
 - `session.load_rom`, `session.info`, `session.reset`, `session.shutdown`
 - `run.step_frames`, `run.status`
+- `input.set`, `input.get`
+- `video.export_frame`
 - `cpu.registers`, `cpu.read_memory`, `cpu.write_memory`
 - `watch.create`, `watch.list`, `watch.delete`
 - `breakpoint.create`, `breakpoint.list`, `breakpoint.delete`
@@ -96,9 +98,14 @@ directory, launches Mesen against that extracted file, and removes it on
 
 For deterministic evidence runs, call `run.step_frames` with `reset=true`. That
 makes reset plus N frames one bridge operation and avoids variable frames
-between separate MCP calls. A newly loaded ROM is held at its first completed
-frame until that explicit run request, so watches and CDL can be armed without
+between separate MCP calls. A newly loaded ROM is held before its first frame
+starts until that explicit run request, so watches and CDL can be armed without
 recording an uncontrolled pre-reset interval.
+
+`input.set` latches named controller buttons and applies them from Mesen's
+`inputPolled` callback, which is the only safe point for scripted input. Change
+the latch while held at a frame boundary, then advance the intended number of
+frames. `video.export_frame` writes the held rendered frame as binary P6 RGB.
 
 ## Code/Data Logger Semantics
 

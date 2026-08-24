@@ -109,6 +109,28 @@ def main() -> int:
         )
         assert stable_cpu["cycleCount"] == stepped["status"]["cpuCycleCount"], (stable_cpu, stepped)
         assert stable_ram_a == stable_ram_b, "memory changed between requests at the completed frame boundary"
+
+        current_input = tool("input.get", {"session": session, "port": 0, "subport": 0})
+        assert current_input["port"] == 0 and "polled" in current_input, current_input
+        latched = tool(
+            "input.set",
+            {"session": session, "port": 0, "subport": 0, "buttons": {"right": True}},
+        )
+        assert latched["buttons"] == {"right": True}, latched
+        tool("run.step_frames", {"session": session, "frames": 1})
+        applied_input = tool("input.get", {"session": session, "port": 0, "subport": 0})
+        assert applied_input["desired"] == {"right": True}, applied_input
+
+        with tempfile.NamedTemporaryFile(prefix="mesen-frame-", suffix=".ppm", delete=False) as frame_file:
+            frame_path = frame_file.name
+        try:
+            exported = tool("video.export_frame", {"session": session, "path": frame_path})
+            with open(frame_path, "rb") as captured:
+                assert captured.read(3) == b"P6\n"
+            assert exported["format"] == "P6" and exported["pixels"] > 0, exported
+        finally:
+            os.unlink(frame_path)
+
         events = tool("watch.list", {"session": session})["events"]
         assert events, "expected watch events"
         assert events[0].get("pcDisplay"), events[0]

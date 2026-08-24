@@ -49,6 +49,27 @@ class McpDaemon:
                 self.run_step_frames,
             ),
             "run.status": ({"session": Field(str, required=True)}, self.run_status),
+            "input.set": (
+                {
+                    "session": Field(str, required=True),
+                    "port": Field(int, default=0),
+                    "subport": Field(int, default=0),
+                    "buttons": Field(dict, required=True),
+                },
+                self.input_set,
+            ),
+            "input.get": (
+                {
+                    "session": Field(str, required=True),
+                    "port": Field(int, default=0),
+                    "subport": Field(int, default=0),
+                },
+                self.input_get,
+            ),
+            "video.export_frame": (
+                {"session": Field(str, required=True), "path": Field(str, required=True)},
+                self.video_export_frame,
+            ),
             "cpu.registers": (
                 {"session": Field(str, required=True), "cpuType": Field(str), "state": Field(dict)},
                 self.cpu_registers,
@@ -175,6 +196,28 @@ class McpDaemon:
             raise ValidationError("run.step_frames: argument 'frames' must be > 0")
         session = self.sessions.get(args["session"])
         return session.client.request("runFrames", {"frames": args["frames"], "reset": bool(args.get("reset"))})
+
+    def input_set(self, args: Json) -> Any:
+        if not 0 <= args["port"] <= 5:
+            raise ValidationError("input.set: argument 'port' must be between 0 and 5")
+        if args["subport"] < 0:
+            raise ValidationError("input.set: argument 'subport' must be >= 0")
+        for name, pressed in args["buttons"].items():
+            if not isinstance(name, str) or not isinstance(pressed, bool):
+                raise ValidationError("input.set: 'buttons' must map string names to booleans")
+        return self.sessions.get(args["session"]).client.request(
+            "setInput", _select(args, "port", "subport", "buttons")
+        )
+
+    def input_get(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request(
+            "getInput", _select(args, "port", "subport")
+        )
+
+    def video_export_frame(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request(
+            "exportFrame", {"path": args["path"]}
+        )
 
     def cpu_registers(self, args: Json) -> Any:
         session = self.sessions.get(args["session"])

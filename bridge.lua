@@ -341,11 +341,13 @@ local watch_events = {}
 local breakpoints = {}
 local breakpoint_events = {}
 local traces = {}
+local desired_inputs = {}
 local cdl_active = false
 local max_event_buffer = tonumber(os.getenv("MESEN_BRIDGE_MAX_EVENTS") or "2048")
--- A newly loaded ROM must not run freely between setup RPCs. Hold the first
--- completed frame until an explicit runFrames request releases execution.
+-- A newly loaded ROM must not run freely between setup RPCs. Hold before the
+-- first frame starts until an explicit runFrames request releases execution.
 local hold_at_boundary = true
+local initial_start_pending = true
 local pump_socket
 local pending_responses = {}
 local pending_marker = {}
@@ -434,6 +436,51 @@ function commands.status()
     frame = frame_count,
     masterClock = emu.getMasterClock(),
     cpuCycleCount = ok_cycles and cycles or nil,
+  }
+end
+
+function commands.setInput(args)
+  args = args or {}
+  local port = args.port or 0
+  local subport = args.subport or 0
+  local buttons = assert(args.buttons, "buttons is required")
+  local key = tostring(port) .. ":" .. tostring(subport)
+  desired_inputs[key] = { port = port, subport = subport, buttons = buttons }
+  return { port = port, subport = subport, buttons = buttons }
+end
+
+function commands.getInput(args)
+  args = args or {}
+  local port = args.port or 0
+  local subport = args.subport or 0
+  local key = tostring(port) .. ":" .. tostring(subport)
+  local desired = desired_inputs[key]
+  return {
+    port = port,
+    subport = subport,
+    desired = desired and desired.buttons or {},
+    polled = emu.getInput(port, subport),
+  }
+end
+
+function commands.exportFrame(args)
+  args = args or {}
+  local path = assert(args.path, "path is required")
+  local size = emu.getScreenSize()
+  local buffer = emu.getScreenBuffer()
+  local file = assert(io.open(path, "wb"))
+  file:write("P6\n", tostring(size.width), " ", tostring(size.height), "\n255\n")
+  for i = 1, #buffer do
+    local color = buffer[i]
+    file:write(string.char((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF))
+  end
+  file:close()
+  return {
+    path = path,
+    format = "P6",
+    width = size.width,
+    height = size.height,
+    pixels = #buffer,
   }
 end
 
@@ -920,6 +967,21 @@ pump_socket = function(timeout)
     end
   end
 end
+
+emu.addEventCallback(function()
+  for _, input in pairs(desired_inputs) do
+    emu.setInput(input.buttons, input.port, input.subport)
+  end
+end, emu.eventType.inputPolled)
+
+emu.addEventCallback(function()
+  if initial_start_pending then
+    initial_start_pending = false
+    while hold_at_boundary do
+      pump_socket(0.05)
+    end
+  end
+end, emu.eventType.startFrame)
 
 emu.addEventCallback(function()
   frame_count = frame_count + 1
