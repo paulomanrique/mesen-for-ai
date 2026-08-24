@@ -74,6 +74,10 @@ class McpDaemon:
                 {"session": Field(str, required=True), "cpuType": Field(str), "state": Field(dict)},
                 self.cpu_registers,
             ),
+            "console.state": (
+                {"session": Field(str, required=True)},
+                self.console_state,
+            ),
             "cpu.read_memory": (
                 {
                     "session": Field(str, required=True),
@@ -228,6 +232,9 @@ class McpDaemon:
             bridge_args["state"] = args["state"]
             return session.client.request("setCpuState", bridge_args)
         return session.client.request("cpuState", bridge_args)
+
+    def console_state(self, args: Json) -> Any:
+        return self.sessions.get(args["session"]).client.request("consoleState")
 
     def cpu_read_memory(self, args: Json) -> Any:
         return self.sessions.get(args["session"]).client.request(

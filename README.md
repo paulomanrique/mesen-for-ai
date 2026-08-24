@@ -86,6 +86,9 @@ Implemented tools:
 - `input.set`, `input.get`
 - `video.export_frame`
 - `cpu.registers`, `cpu.read_memory`, `cpu.write_memory`
+- `console.state` for the held machine's complete serialized scalar state,
+  including NES PPU `VideoRamAddr`, `TmpVideoRamAddr`, `ScrollX`, and
+  `WriteToggle`
 - `watch.create`, `watch.list`, `watch.delete`
 - `breakpoint.create`, `breakpoint.list`, `breakpoint.delete`
 - `cdl.start`, `cdl.stop`, `cdl.get`, `cdl.export`

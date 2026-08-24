@@ -417,6 +417,10 @@ function commands.cpuState(args)
   return emu.getCpuState(ct)
 end
 
+function commands.consoleState()
+  return emu.getState()
+end
+
 function commands.setCpuState(args)
   args = args or {}
   local state = assert(args.state, "state is required")
