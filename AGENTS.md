@@ -161,6 +161,10 @@ CDL collection is continuous inside Mesen. The Lua API exposes `getCdlData`; it
 does not expose start/stop control. `cdl.start` and `cdl.stop` are session
 window markers only.
 
+Mesen's `getCdlData` Lua table is explicitly zero-indexed. Bridge loops must
+read `data[0]` through `data[memorySize - 1]`; a normal one-based Lua loop
+silently shifts every code/data address by one byte.
+
 `coveredBytes == memorySize` means the exported map covers every byte in the ROM
 region. It does not mean the run executed or read the whole ROM.
 

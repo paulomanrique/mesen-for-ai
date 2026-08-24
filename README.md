@@ -113,6 +113,10 @@ Mesen's Lua API exposes `getCdlData`; it does not expose a logger on/off switch.
 `cdl.start` and `cdl.stop` are MCP-side window markers only. Collection is
 continuous inside Mesen.
 
+The Lua `getCdlData` table is zero-indexed even though ordinary Lua arrays are
+usually one-indexed. The bridge preserves physical ROM offset zero as JSON
+element zero; do not add an index adjustment in callers.
+
 `cdl.export` returns `coveredBytes` and `memorySize`. Equality means the exported
 map has one decoded record for every byte in that ROM region. It does not mean
 the run executed or read the whole ROM.

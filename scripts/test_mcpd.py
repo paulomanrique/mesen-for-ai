@@ -79,6 +79,11 @@ def main() -> int:
         assert hit, "expected breakpoint_hit"
         assert hit["breakpoint"] == breakpoint["handle"], (hit, breakpoint)
         assert hit["pcDisplay"] == "$00:8000", hit
+        first_cdl_bytes = tool(
+            "cdl.get",
+            {"session": session, "memoryType": "snesPrgRom", "offset": 0, "length": 2},
+        )["bytes"]
+        assert first_cdl_bytes[0]["code"], first_cdl_bytes
         print(f"breakpoint_hit {hit['breakpoint']} pc={hit['pcDisplay']} frame={hit['frame']}")
 
         listed = tool("breakpoint.list", {"session": session})

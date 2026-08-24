@@ -717,9 +717,10 @@ function commands.getCdl(args)
   local mt = mem_type(memory_name)
   local offset = args.offset or 0
   local length = args.length or emu.getMemorySize(mt)
+  local memory_size = emu.getMemorySize(mt)
   local data = emu.getCdlData(mt)
   local bytes = {}
-  for i = offset + 1, math.min(offset + length, #data) do
+  for i = offset, math.min(offset + length - 1, memory_size - 1) do
     bytes[#bytes + 1] = decode_cdl_flags(data[i], memory_name)
   end
   return {
@@ -727,7 +728,7 @@ function commands.getCdl(args)
     memoryType = memory_name,
     offset = offset,
     length = #bytes,
-    memorySize = emu.getMemorySize(mt),
+    memorySize = memory_size,
     bytes = bytes,
   }
 end
@@ -737,9 +738,9 @@ local function write_cdl_export(path, memory_name, data, memory_size)
   file:write("{\"memoryType\":", json.encode(memory_name), ",\"memorySize\":", tostring(memory_size), ",\"bytes\":[")
   local summaries = {}
   local current = nil
-  for i = 1, memory_size do
+  for i = 0, memory_size - 1 do
     local value = data[i] or 0
-    if i > 1 then
+    if i > 0 then
       file:write(",")
     end
     file:write(json.encode(decode_cdl_flags(value, memory_name)))
@@ -747,9 +748,9 @@ local function write_cdl_export(path, memory_name, data, memory_size)
     local jump = memory_name ~= "nesChrRom" and (value & 0x04) ~= 0
     local sub = memory_name ~= "nesChrRom" and (value & 0x08) ~= 0
     if current and current.classification == class and current.jumpTarget == jump and current.subEntryPoint == sub then
-      current["end"] = i - 1
+      current["end"] = i
     else
-      current = { start = i - 1, ["end"] = i - 1, classification = class, jumpTarget = jump, subEntryPoint = sub }
+      current = { start = i, ["end"] = i, classification = class, jumpTarget = jump, subEntryPoint = sub }
       summaries[#summaries + 1] = current
     end
   end
@@ -771,7 +772,7 @@ function commands.exportCdl(args)
   local data_count = 0
   local drawn = 0
   local sample = {}
-  for i = 1, size do
+  for i = 0, size - 1 do
     local value = data[i] or 0
     if memory_name == "nesChrRom" then
       if (value & 0x01) ~= 0 then drawn = drawn + 1 end
