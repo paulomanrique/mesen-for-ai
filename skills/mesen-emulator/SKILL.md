@@ -106,7 +106,8 @@ Common memory types:
 - NES: `nesMemory`, `nesPpuMemory`, `nesInternalRam`, `nesPrgRom`,
   `nesChrRom`, `nesNametableRam`, `nesPaletteRam`, `nesSpriteRam`,
   `nesSecondarySpriteRam`
-- PC Engine: `pceMemory`, `pceWorkRam`, `pcePrgRom`
+- PC Engine: `pceMemory`, `pceWorkRam`, `pcePrgRom`, `pceCdromRam`,
+  `pceCardRam`, `pceArcadeCardRam`
 - GBA: `gbaMemory`, `gbaIntWorkRam`, `gbaExtWorkRam`, `gbaPrgRom`
 
 Common CPU types: `snes`, `nes`, `pce`, `gba`. Use `cpu.registers` after loading to see

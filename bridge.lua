@@ -271,6 +271,7 @@ local memory_aliases = {
   pceWorkRam = emu.memType.pceWorkRamDebug or emu.memType.pceWorkRam,
   pceCdromRam = emu.memType.pceCdromRam,
   pceCardRam = emu.memType.pceCardRam,
+  pceArcadeCardRam = emu.memType.pceArcadeCardRam,
   gbaMemory = emu.memType.gbaMemory,
   gbaPrgRom = emu.memType.gbaPrgRom,
   gbaIntWorkRam = emu.memType.gbaIntWorkRamDebug or emu.memType.gbaIntWorkRam,

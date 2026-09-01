@@ -1,0 +1,41 @@
+From: mesen-for-ai local compatibility fixes
+Subject: [PATCH] PCE: treat zero READ(6) length as 256 sectors
+
+SCSI READ(6) encodes a 256-sector transfer with a zero transfer-length byte.
+Keep the pending count wide enough to represent that value.
+
+Validated against MesenCE commit 20ba206cef5ba207c21203176d02cb9f43dda9fb.
+
+diff --git a/Core/PCE/CdRom/PceScsiBus.cpp b/Core/PCE/CdRom/PceScsiBus.cpp
+index 999e08e..b115f5c 100644
+--- a/Core/PCE/CdRom/PceScsiBus.cpp
++++ b/Core/PCE/CdRom/PceScsiBus.cpp
+@@ -234,13 +234,9 @@ uint64_t PceScsiBus::GetSectorLoadTime()
+ void PceScsiBus::CmdRead()
+ {
+ 	uint32_t sector = _cmdBuffer[3] | (_cmdBuffer[2] << 8) | ((_cmdBuffer[1] & 0x1F) << 16);
+-	uint8_t sectorsToRead = _cmdBuffer[4];
++	uint16_t sectorsToRead = _cmdBuffer[4] ? _cmdBuffer[4] : 0x100;
+ 
+-	if(sectorsToRead == 0) {
+-		LogCommand("Read - No sectors to read");
+-		SetStatusMessage(ScsiStatus::Good, 0);
+-		return;
+-	} else if(sector >= _disc->DiscSectorCount) {
++	if(sector >= _disc->DiscSectorCount) {
+ 		LogCommand("Read - invalid sector, command ignored: " + std::to_string(sector));
+ 		SetStatusMessage(ScsiStatus::Good, 0);
+ 		return;
+diff --git a/Core/PCE/PceTypes.h b/Core/PCE/PceTypes.h
+index f5ac921..80b1f3b 100644
+--- a/Core/PCE/PceTypes.h
++++ b/Core/PCE/PceTypes.h
+@@ -405,7 +405,7 @@ struct PceScsiBusState
+ 	uint8_t ReadDataPort;
+ 
+ 	uint32_t Sector;
+-	uint8_t SectorsToRead;
++	uint16_t SectorsToRead;
+ };
+ 
+ enum class PceAudioFaderTarget

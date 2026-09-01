@@ -110,15 +110,35 @@ directory, launches Mesen against that extracted file, and removes it on
 Mesen accepts PC Engine CD media as a `.cue` plus its referenced track files.
 For those sessions, `pceCdromRam` exposes the CD unit RAM and `pceCardRam`
 exposes the 192 KiB Super CD-ROM² RAM supplied by System Card 3, in addition to
-the usual `pceMemory`, `pceWorkRam`, and `pcePrgRom` aliases. Disc images and
-System Card firmware remain private inputs and are never copied into this
-repository.
+the usual `pceMemory`, `pceWorkRam`, and `pcePrgRom` aliases.
+`pceArcadeCardRam` separately exposes the 2 MiB Arcade Card expansion RAM when
+that hardware is active. Disc images and System Card firmware remain private
+inputs and are never copied into this repository.
 
 Start deterministic PC Engine CD evidence from a new session and advance with
 `reset=false`. In the source-built MesenCE version validated here, calling
 `emu.reset()` from the bridge after a cue sheet has started closes the testrunner
 instead of returning a frame response. A fresh isolated session supplies the
 cold-boot boundary without that reset call.
+
+### PC Engine CD READ(6) compatibility patch
+
+MesenCE commit `20ba206cef5ba207c21203176d02cb9f43dda9fb` treats a zero
+READ(6) transfer-length byte as an empty request. SCSI READ(6) defines that byte
+as 256 sectors, and commercial PC Engine CD software can depend on it. Apply
+`patches/mesence-pce-read6-zero-length.patch` to that revision before building:
+
+```sh
+git apply /path/to/mesen-for-ai/patches/mesence-pce-read6-zero-length.patch
+make core -j4
+make ui
+```
+
+The patch widens the saved sector counter to 16 bits and maps command byte zero
+to `0x100`. It was validated with the Japanese PC Engine CD release of World
+Heroes 2: command `08 00 22 78 00 00` transfers sectors 8824 through 9079 and
+allows the original post-versus loader to reach CPU `$C15B`. No game bytes or
+firmware are included here.
 
 For deterministic evidence runs, call `run.step_frames` with `reset=true`. That
 makes reset plus N frames one bridge operation and avoids variable frames
