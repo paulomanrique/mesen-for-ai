@@ -108,9 +108,11 @@ directory, launches Mesen against that extracted file, and removes it on
 `session.shutdown`.
 
 Mesen accepts PC Engine CD media as a `.cue` plus its referenced track files.
-For those sessions, `pceCdromRam` exposes the CD unit RAM in addition to the
-usual `pceMemory`, `pceWorkRam`, and `pcePrgRom` aliases. Disc images and System
-Card firmware remain private inputs and are never copied into this repository.
+For those sessions, `pceCdromRam` exposes the CD unit RAM and `pceCardRam`
+exposes the 192 KiB Super CD-ROM² RAM supplied by System Card 3, in addition to
+the usual `pceMemory`, `pceWorkRam`, and `pcePrgRom` aliases. Disc images and
+System Card firmware remain private inputs and are never copied into this
+repository.
 
 Start deterministic PC Engine CD evidence from a new session and advance with
 `reset=false`. In the source-built MesenCE version validated here, calling
