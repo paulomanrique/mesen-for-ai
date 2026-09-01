@@ -112,8 +112,10 @@ For those sessions, `pceCdromRam` exposes the CD unit RAM and `pceCardRam`
 exposes the 192 KiB Super CD-ROM² RAM supplied by System Card 3, in addition to
 the usual `pceMemory`, `pceWorkRam`, and `pcePrgRom` aliases.
 `pceArcadeCardRam` separately exposes the 2 MiB Arcade Card expansion RAM when
-that hardware is active. Disc images and System Card firmware remain private
-inputs and are never copied into this repository.
+that hardware is active. `pceAdpcmRam`, `pceVideoRam`, `pceSpriteRam`, and
+`pcePaletteRam` expose the remaining asset-bearing memories needed to verify
+audio and graphics extraction. Disc images and System Card firmware remain
+private inputs and are never copied into this repository.
 
 Start deterministic PC Engine CD evidence from a new session and advance with
 `reset=false`. In the source-built MesenCE version validated here, calling
