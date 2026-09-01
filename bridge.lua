@@ -269,6 +269,7 @@ local memory_aliases = {
   pceMemory = emu.memType.pceMemory,
   pcePrgRom = emu.memType.pcePrgRom,
   pceWorkRam = emu.memType.pceWorkRamDebug or emu.memType.pceWorkRam,
+  pceCdromRam = emu.memType.pceCdromRam,
   gbaMemory = emu.memType.gbaMemory,
   gbaPrgRom = emu.memType.gbaPrgRom,
   gbaIntWorkRam = emu.memType.gbaIntWorkRamDebug or emu.memType.gbaIntWorkRam,

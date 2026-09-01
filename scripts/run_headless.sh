@@ -35,6 +35,15 @@ MESEN_CONFIG_HOME="$SESSION_HOME/.config/MesenCE"
 
 mkdir -p "$MESEN_CONFIG_HOME" "$SESSION_WORK"
 
+if [[ -n "${MESEN_PCECD_FIRMWARE:-}" ]]; then
+  if [[ ! -f "$MESEN_PCECD_FIRMWARE" ]]; then
+    echo "PC Engine CD firmware not found: $MESEN_PCECD_FIRMWARE" >&2
+    exit 66
+  fi
+  mkdir -p "$MESEN_CONFIG_HOME/Firmware"
+  cp -- "$MESEN_PCECD_FIRMWARE" "$MESEN_CONFIG_HOME/Firmware/syscard3.pce"
+fi
+
 cat > "$MESEN_CONFIG_HOME/settings.json" <<'JSON'
 {
   "Debug": {
@@ -55,7 +64,10 @@ cat > "$MESEN_CONFIG_HOME/settings.json" <<'JSON'
   },
   "PcEngine": {
     "RamPowerOnState": 1,
-    "EnableRandomPowerOnState": false
+    "EnableRandomPowerOnState": false,
+    "Port1": {
+      "Type": "PceController"
+    }
   },
   "Gba": {
     "RamPowerOnState": 1

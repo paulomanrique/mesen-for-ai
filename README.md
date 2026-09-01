@@ -16,7 +16,7 @@ available:
 
 - SNES / Super Nintendo
 - NES / Famicom
-- PC Engine / TurboGrafx-16
+- PC Engine / TurboGrafx-16, including CD-ROM² cue sheets
 - Game Boy Advance
 
 The Code/Data Logger is available for SNES PRG ROM, NES PRG/CHR ROM, PC Engine
@@ -39,6 +39,13 @@ export MESEN_BIN=/path/to/Mesen
 
 The local wrapper has a development default for `MESEN_BIN`, but public use
 should set the variable explicitly.
+
+PC Engine CD sessions also require a user-supplied System Card 3 image. The
+runner copies it into the isolated session home and Mesen verifies its hash:
+
+```sh
+export MESEN_PCECD_FIRMWARE=/path/to/syscard3.pce
+```
 
 ## Run the MCP Daemon
 
@@ -65,6 +72,7 @@ The runner creates an isolated Mesen home and writes deterministic settings:
 - Lua IO/OS access enabled.
 - Lua network access enabled for the socket bridge.
 - deterministic RAM power-on state for SNES, NES, PC Engine, GBA, and Game Boy.
+- a standard two-button controller on PC Engine port 1.
 - NES mapper and CPU/PPU alignment randomization disabled.
 
 For a deterministic RAM smoke test:
@@ -98,6 +106,17 @@ Implemented tools:
 daemon extracts the single supported ROM member into the session temporary
 directory, launches Mesen against that extracted file, and removes it on
 `session.shutdown`.
+
+Mesen accepts PC Engine CD media as a `.cue` plus its referenced track files.
+For those sessions, `pceCdromRam` exposes the CD unit RAM in addition to the
+usual `pceMemory`, `pceWorkRam`, and `pcePrgRom` aliases. Disc images and System
+Card firmware remain private inputs and are never copied into this repository.
+
+Start deterministic PC Engine CD evidence from a new session and advance with
+`reset=false`. In the source-built MesenCE version validated here, calling
+`emu.reset()` from the bridge after a cue sheet has started closes the testrunner
+instead of returning a frame response. A fresh isolated session supplies the
+cold-boot boundary without that reset call.
 
 For deterministic evidence runs, call `run.step_frames` with `reset=true`. That
 makes reset plus N frames one bridge operation and avoids variable frames
