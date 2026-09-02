@@ -1,0 +1,14 @@
+From: mesen-for-ai local compatibility fixes
+Subject: [PATCH] Lua: preserve SetInput parameter positions
+
+LuaCallHelper already enforces the three SetInput arguments. Do not append a
+fourth stack value before reading them, because that shifts port and subport.
+
+Validated against MesenCE commit 20ba206cef5ba207c21203176d02cb9f43dda9fb.
+
+diff --git a/Core/Debugger/LuaApi.cpp b/Core/Debugger/LuaApi.cpp
+index 179a2a0..382f547 100644
+--- a/Core/Debugger/LuaApi.cpp
++++ b/Core/Debugger/LuaApi.cpp
+@@ -875 +874,0 @@ int LuaApi::SetInput(lua_State* lua)
+-	lua_settop(lua, 4);

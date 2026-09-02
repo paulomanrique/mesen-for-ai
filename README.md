@@ -78,6 +78,10 @@ The runner creates an isolated Mesen home and writes deterministic settings:
 Set `MESEN_PCE_TURBOTAP=1` when a PC Engine verification needs two players.
 The isolated session then uses a TurboTap with standard two-button controllers
 on subports 0 and 1; `input.set` addresses them with `port=0, subport=0/1`.
+MesenCE 2.2.1 also needs `patches/mesence-lua-input-subport.patch`: its
+`LuaApi::SetInput` first requires three parameters and then grows the Lua stack
+to four, shifting the values read by `LuaCallHelper`. Removing that second
+stack adjustment makes the requested TurboTap subport reach the input manager.
 
 For a deterministic RAM smoke test:
 
@@ -136,6 +140,7 @@ as 256 sectors, and commercial PC Engine CD software can depend on it. Apply
 
 ```sh
 git apply /path/to/mesen-for-ai/patches/mesence-pce-read6-zero-length.patch
+git apply /path/to/mesen-for-ai/patches/mesence-lua-input-subport.patch
 make core -j4
 make ui
 ```
