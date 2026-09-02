@@ -44,7 +44,12 @@ if [[ -n "${MESEN_PCECD_FIRMWARE:-}" ]]; then
   cp -- "$MESEN_PCECD_FIRMWARE" "$MESEN_CONFIG_HOME/Firmware/syscard3.pce"
 fi
 
-cat > "$MESEN_CONFIG_HOME/settings.json" <<'JSON'
+pce_port1_type="PceController"
+if [[ "${MESEN_PCE_TURBOTAP:-0}" == "1" ]]; then
+  pce_port1_type="PceTurboTap"
+fi
+
+cat > "$MESEN_CONFIG_HOME/settings.json" <<JSON
 {
   "Debug": {
     "ScriptWindow": {
@@ -66,8 +71,13 @@ cat > "$MESEN_CONFIG_HOME/settings.json" <<'JSON'
     "RamPowerOnState": 1,
     "EnableRandomPowerOnState": false,
     "Port1": {
-      "Type": "PceController"
-    }
+      "Type": "$pce_port1_type"
+    },
+    "Port1A": { "Type": "PceController" },
+    "Port1B": { "Type": "PceController" },
+    "Port1C": { "Type": "None" },
+    "Port1D": { "Type": "None" },
+    "Port1E": { "Type": "None" }
   },
   "Gba": {
     "RamPowerOnState": 1

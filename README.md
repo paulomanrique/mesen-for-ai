@@ -75,6 +75,10 @@ The runner creates an isolated Mesen home and writes deterministic settings:
 - a standard two-button controller on PC Engine port 1.
 - NES mapper and CPU/PPU alignment randomization disabled.
 
+Set `MESEN_PCE_TURBOTAP=1` when a PC Engine verification needs two players.
+The isolated session then uses a TurboTap with standard two-button controllers
+on subports 0 and 1; `input.set` addresses them with `port=0, subport=0/1`.
+
 For a deterministic RAM smoke test:
 
 ```sh
